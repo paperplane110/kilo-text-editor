@@ -2,7 +2,38 @@
 
 Build your own text editor for learning C: [tutorial](https://viewsourcecode.org/snaptoken/kilo/index.html)
 
-Other links:
+## Build
+
+```bash
+# go to the project file
+cd kilo
+
+# compile kilo.c
+make
+```
+
+Then you will find `./kilo` inside the current dir.
+
+## Usage
+
+```
+# Open an empty editor
+./kilo
+
+# Open a file
+./kilo <filename>
+
+# Quit
+Ctrl + q
+
+# Save
+Ctrl + s
+
+# Quit without saving
+Ctrl + q + q + q
+```
+
+## Other links:
 
 - C operators: [link](https://www.runoob.com/cprogramming/c-operators.html)
 - C array of pointers: [link](https://www.runoob.com/cprogramming/c-array-of-pointers.html)
@@ -10,3 +41,4 @@ Other links:
 - `<unistd.h>`: [link](https://blog.csdn.net/reasonyuanrobot/article/details/103172210)
 - Console colors: [link](https://gist.github.com/abritinthebay/d80eb99b2726c83feb0d97eab95206c4)
 - Console codes: `man console_codes` or [link](https://blog.51cto.com/u_1923895/5939748)
+- Static variables: [link](https://www.geeksforgeeks.org/static-variables-in-c/)
