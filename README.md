@@ -33,6 +33,23 @@ Ctrl + s
 Ctrl + q + q + q
 ```
 
+## Note
+
+### 1. `sprintf` and `snprintf`
+
+两者都是将数据写入缓冲区，并且返回缓冲区的长度（不包含结束符`\0`）。
+两者的区别在于 `snprintf` 要求提前声明要写入的数组长度，更加安全。
+
+```c
+int num = 3;
+char buf[5];
+int len1;
+int len2;
+
+len1 = snprintf(buf, sizeof(buf), "1+2=%d", num);
+len2 = sprintf(buf, "1+2=%d", num);
+```
+
 ## Other links:
 
 - C operators: [link](https://www.runoob.com/cprogramming/c-operators.html)
