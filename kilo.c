@@ -59,22 +59,33 @@ typedef struct erow {
 } erow;
 
 struct editorConfig {
-  int cx, cy;                   // cursor position according to file
-  int rx;                       // cursor x position according to 'render field'
-  int rowoff;                   // vision window row offset
-  int coloff;                   // vision window column offset
-  int screenrows;               // height of the screen
-  int screencols;               // width of the screen
-  int numrows;                  // file's row number
-  erow* row;                    // file contents: pointer to the dynamic erows
-  int dirty;                    // dirty flag: whether changes might be lost
-  char* filename;               // file's name
-  char statusmsg[80];           // status message
-  time_t statusmsg_time;        // timestamp of the status message
+  int cx, cy;             // cursor position according to file
+  int rx;                 // cursor x position according to 'render field'
+  int rowoff;             // vision window row offset
+  int coloff;             // vision window column offset
+  int screenrows;         // height of the screen
+  int screencols;         // width of the screen
+  int numrows;            // file's row number
+  erow* row;              // file contents: pointer to the dynamic erows
+  int dirty;              // dirty flag: whether changes might be lost
+  char* filename;         // file's name
+  char statusmsg[80];     // status message
+  time_t statusmsg_time;  // timestamp of the status message
+  struct editorSyntax* syntax;
   struct termios orig_termios;  // terminal's config
 };
 
 struct editorConfig E;
+
+/*** filetypes ***/
+
+char* C_HL_extensions[] = {".c", ".h", ".cpp", NULL};
+
+// Highlight Database
+struct editorSyntax HLDB[] = {{"c", C_HL_extensions, HL_HIGHLIGHT_NUMBERS}};
+
+// store the length of the HLDB array
+#define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))
 
 /*** prototypes ***/
 
@@ -223,6 +234,8 @@ void editorUpdateSyntax(erow* row) {
   // init each char as normal highlight
   memset(row->hl, HL_NORMAL, row->rsize);
 
+  if (E.syntax == NULL) return;
+
   int prev_sep = 1;
 
   int i = 0;
@@ -230,12 +243,14 @@ void editorUpdateSyntax(erow* row) {
     char c = row->render[i];
     unsigned char prev_hl = (i > 0) ? row->hl[i - 1] : HL_NORMAL;
 
-    if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
-        (c == '.' && prev_hl == HL_NUMBER)) {
-      row->hl[i] = HL_NUMBER;
-      i++;
-      prev_sep = 0;
-      continue;
+    if (E.syntax->flags & HL_HIGHLIGHT_NUMBERS) {
+      if ((isdigit(c) && (prev_sep || prev_hl == HL_NUMBER)) ||
+          (c == '.' && prev_hl == HL_NUMBER)) {
+        row->hl[i] = HL_NUMBER;
+        i++;
+        prev_sep = 0;
+        continue;
+      }
     }
 
     prev_sep = is_separator(c);
@@ -251,6 +266,27 @@ int editorSyntaxToColor(int hl) {
       return 34;
     default:
       return 37;
+  }
+}
+
+void editorSelectSyntaxHighlight() {
+  E.syntax = NULL;
+  if (E.filename == NULL) return;
+
+  char* ext = strrchr(E.filename, '.');
+
+  for (unsigned int j = 0; j < HLDB_ENTRIES; j++) {
+    struct editorSyntax* s = &HLDB[j];
+    unsigned int i = 0;
+    while (s->filematch[i]) {
+      int is_ext = (s->filematch[i][0] == '.');
+      if ((is_ext && ext && !strcmp(ext, s->filematch[i])) ||
+          (!is_ext && strstr(E.filename, s->filematch[i]))) {
+        E.syntax = s;
+        return;
+      }
+      i++;
+    }
   }
 }
 
@@ -686,7 +722,9 @@ void editorDrawStatusBar(struct abuf* ab) {
 
   // define right side contents of status bar
   char rstatus[80];
-  int rlen = snprintf(rstatus, sizeof(rstatus), "%d/%d", E.cy + 1, E.numrows);
+  int rlen =
+      snprintf(rstatus, sizeof(rstatus), "%s | %d/%d",
+               E.syntax ? E.syntax->filetype : "no ft", E.cy + 1, E.numrows);
 
   // draw the remain status bar
   while (len < E.screencols) {
@@ -925,6 +963,7 @@ void initEditor() {
   E.filename = NULL;
   E.statusmsg[0] = '\0';
   E.statusmsg_time = 0;
+  E.syntax = NULL;
 
   if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
   E.screenrows -= 2;  // remain lines for status bar and message
